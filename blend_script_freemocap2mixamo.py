@@ -349,7 +349,7 @@ if __name__ == '__main__':
     
     bvh_folders = '/home/innovation/dev-lbringer/retargeting/motion_retargeting/source_motion'
     retargeted_bvh_folders = '/home/innovation/dev-lbringer/retargeting/motion_retargeting/target_motion'
-    retargeted_Tpose_path = '/home/innovation/dev-lbringer/retargeting/motion_retargeting/fbx_files/fbx2bvh/Mixamo_Mannequin/Mixamo_Mannequin.bvh'
+    retargeted_Tpose_path = '/home/innovation/dev-lbringer/retargeting/motion_retargeting/Mixamo_Mannequin.bvh'
 
     
     bpy.context.scene.render.fps = 30
