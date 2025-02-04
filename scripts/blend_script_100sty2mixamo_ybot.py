@@ -367,7 +367,7 @@ if __name__ == '__main__':
     
     bvh_folders = '/home/innovation/dev-lbringer/retargeting/motion_retargeting/source_motion'
     retargeted_bvh_folders = '/home/innovation/dev-lbringer/retargeting/motion_retargeting/target_motion'
-    retargeted_Tpose_path = '/home/innovation/dev-lbringer/retargeting/motion_retargeting/Tpose_ybot.bvh'
+    retargeted_Tpose_path = '/home/innovation/dev-lbringer/retargeting/motion_retargeting/source_Tpose/Tpose_ybot.bvh'
 
     
     bpy.context.scene.render.fps = 60
