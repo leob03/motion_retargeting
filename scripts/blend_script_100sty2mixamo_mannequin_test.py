@@ -421,6 +421,11 @@ if __name__ == '__main__':
             raise Exception("No armature found in the FBX file!")
         bpy.context.scene.target_rig = target_armature.name
         target_armature["retargetted"] = True  # Mark this armature for preservation
+
+        # Mark the mesh of the imported FBX file as "retargetted"
+        for obj in bpy.context.selected_objects:
+            if obj.type == 'MESH':
+                obj["retargetted"] = True
         # -------------------------------------------------------------------------
 
         # Run ARP operators to configure and retarget
@@ -432,41 +437,42 @@ if __name__ == '__main__':
         # Refine the T-pose (adjust bone transforms as needed; verify that bone names match those in your FBX)
         armature = bpy.context.object
         
-        bone_name = 'Hips'
-        armature.data.bones[bone_name].select = True
-        armature.data.bones.active = armature.data.bones[bone_name]
-        bpy.ops.transform.translate(value=(0, 0, -9), orient_type='GLOBAL')
-        armature.data.bones[bone_name].select = False
-        
-        bone_name = 'LeftKnee'
-        armature.data.bones[bone_name].select = True
-        armature.data.bones.active = armature.data.bones[bone_name]
-        bpy.ops.transform.rotate(value=0.053, orient_axis='X', orient_type='GLOBAL')
-        armature.data.bones[bone_name].select = False
-
-        bone_name = 'RightKnee'
-        armature.data.bones[bone_name].select = True
-        armature.data.bones.active = armature.data.bones[bone_name]
-        bpy.ops.transform.rotate(value=0.053, orient_axis='X', orient_type='GLOBAL')
-        armature.data.bones[bone_name].select = False
-
-        bone_name = 'Chest'
-        armature.data.bones[bone_name].select = True
-        armature.data.bones.active = armature.data.bones[bone_name]
-        bpy.ops.transform.rotate(value=-0.125, orient_axis='X', orient_type='GLOBAL')
-        armature.data.bones[bone_name].select = False
-
-        bone_name = 'Neck'
-        armature.data.bones[bone_name].select = True
-        armature.data.bones.active = armature.data.bones[bone_name]
-        bpy.ops.transform.rotate(value=0.29, orient_axis='X', orient_type='GLOBAL')
-        armature.data.bones[bone_name].select = False
-        
-        bone_name = 'Head'
-        armature.data.bones[bone_name].select = True
-        armature.data.bones.active = armature.data.bones[bone_name]
-        bpy.ops.transform.rotate(value=0.12, orient_axis='X', orient_type='GLOBAL')
-        armature.data.bones[bone_name].select = False
+        # Temporarily disable manual bone transformation adjustments:
+        # bone_name = 'Hips'
+        # armature.data.bones[bone_name].select = True
+        # armature.data.bones.active = armature.data.bones[bone_name]
+        # bpy.ops.transform.translate(value=(0, 0, -9), orient_type='GLOBAL')
+        # armature.data.bones[bone_name].select = False
+        # 
+        # bone_name = 'LeftKnee'
+        # armature.data.bones[bone_name].select = True
+        # armature.data.bones.active = armature.data.bones[bone_name]
+        # bpy.ops.transform.rotate(value=0.053, orient_axis='X', orient_type='GLOBAL')
+        # armature.data.bones[bone_name].select = False
+        # 
+        # bone_name = 'RightKnee'
+        # armature.data.bones[bone_name].select = True
+        # armature.data.bones.active = armature.data.bones[bone_name]
+        # bpy.ops.transform.rotate(value=0.053, orient_axis='X', orient_type='GLOBAL')
+        # armature.data.bones[bone_name].select = False
+        # 
+        # bone_name = 'Chest'
+        # armature.data.bones[bone_name].select = True
+        # armature.data.bones.active = armature.data.bones[bone_name]
+        # bpy.ops.transform.rotate(value=-0.125, orient_axis='X', orient_type='GLOBAL')
+        # armature.data.bones[bone_name].select = False
+        # 
+        # bone_name = 'Neck'
+        # armature.data.bones[bone_name].select = True
+        # armature.data.bones.active = armature.data.bones[bone_name]
+        # bpy.ops.transform.rotate(value=0.29, orient_axis='X', orient_type='GLOBAL')
+        # armature.data.bones[bone_name].select = False
+        # 
+        # bone_name = 'Head'
+        # armature.data.bones[bone_name].select = True
+        # armature.data.bones.active = armature.data.bones[bone_name]
+        # bpy.ops.transform.rotate(value=0.12, orient_axis='X', orient_type='GLOBAL')
+        # armature.data.bones[bone_name].select = False
     
         bpy.ops.arp.save_pose_rest()
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -485,30 +491,3 @@ if __name__ == '__main__':
         save(target_armature, filepath=export_path, frame_start=start_frame, frame_end=end_frame, root_transform_only=True, global_matrix=global_matrix)
         print("BVH Exported:", export_path)
 
-        # Next, export the same retargeted animation as an FBX file.
-        # We'll create a new file path by replacing the .bvh extension with .fbx.
-        fbx_export_path = export_path.replace('.bvh', '.fbx')
-        
-        # Select the target armature. Optionally, also select its child mesh objects
-        bpy.ops.object.select_all(action='DESELECT')
-        target_armature.select_set(True)
-        for child in target_armature.children:
-            if child.type == 'MESH':
-                child.select_set(True)
-        bpy.context.view_layer.objects.active = target_armature
-
-        # Export selected objects to FBX.
-        bpy.ops.object.mode_set(mode='OBJECT')
-        t0 = time.time()
-        bpy.ops.export_scene.fbx(
-            filepath=fbx_export_path,
-            use_selection=True,
-            bake_anim=True,
-            bake_anim_use_all_bones=True,
-            bake_anim_simplify_factor=0,
-            add_leaf_bones=False,
-            apply_scale_options='FBX_SCALE_ALL',
-            axis_forward='-Z',
-            axis_up='Y'
-        )
-        print("FBX export took:", time.time() - t0, "seconds")
