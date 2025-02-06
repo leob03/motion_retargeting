@@ -49,7 +49,7 @@ def write_armature(
     obj = armature
     arm = obj.data
 
-    # Build a dictionary of children.
+    # Build a dictionary of children
     children = {None: []}
     for bone in arm.bones:
         children[bone.name] = []
@@ -230,9 +230,14 @@ def write_armature(
             itrans = Matrix.Translation(-dbone.rest_bone.head_local)
 
             if dbone.parent:
-                mat_final = dbone.parent.rest_arm_mat @ dbone.parent.pose_imat @ dbone.pose_mat @ dbone.rest_arm_imat
+                mat_final = (dbone.parent.rest_arm_mat 
+                             @ dbone.parent.pose_imat 
+                             @ dbone.pose_mat 
+                             @ dbone.rest_arm_imat)
                 mat_final = itrans @ mat_final @ trans
-                loc = mat_final.to_translation() + (dbone.rest_bone.head_local - dbone.parent.rest_bone.head_local)
+                loc = mat_final.to_translation() + (
+                    dbone.rest_bone.head_local - dbone.parent.rest_bone.head_local
+                )
             else:
                 mat_final = dbone.pose_mat @ dbone.rest_arm_imat
                 mat_final = itrans @ mat_final @ trans
@@ -268,7 +273,7 @@ def save(
         rotate_mode="NATIVE",
         root_transform_only=True,
         global_matrix=None,
-        add_rest_pose_as_first_frame = False,
+        add_rest_pose_as_first_frame=False,
 ):
     """Simple wrapper that calls 'write_armature'."""
     write_armature(
@@ -279,9 +284,10 @@ def save(
         rotate_mode=rotate_mode,
         root_transform_only=root_transform_only,
         global_matrix=global_matrix,
-        add_rest_pose_as_first_frame = add_rest_pose_as_first_frame,
+        add_rest_pose_as_first_frame=add_rest_pose_as_first_frame,
     )
     return {'FINISHED'}
+
 
 def clean_blocks():
     """
@@ -414,6 +420,12 @@ class OBJECT_OT_batch_retarget(bpy.types.Operator):
             source_armature = bpy.context.object
             source_armature["retargetted"] = True
 
+            # Make the newly imported BVH armature active & set as ARP's source rig
+            bpy.context.view_layer.objects.active = source_armature
+            source_armature.select_set(True)
+            bpy.context.scene.source_rig = source_armature.name
+
+            # Figure out frames
             action = source_armature.animation_data.action
             start_frame = int(action.frame_range[0])
             end_frame   = int(action.frame_range[1])
@@ -430,6 +442,11 @@ class OBJECT_OT_batch_retarget(bpy.types.Operator):
                 return {'CANCELLED'}
             target_armature["retargetted"] = True
 
+            # Make the newly imported FBX armature active & set as ARP's target rig
+            bpy.context.view_layer.objects.active = target_armature
+            target_armature.select_set(True)
+            bpy.context.scene.target_rig = target_armature.name
+
             # Mark any imported meshes from FBX as retargetted
             for obj in bpy.context.selected_objects:
                 if obj.type == 'MESH':
@@ -442,14 +459,18 @@ class OBJECT_OT_batch_retarget(bpy.types.Operator):
             # Try to import your preset
             try:
                 bpy.ops.arp.import_config_preset(preset_name=preset_name)
-            except:
-                self.report({'WARNING'}, f"Preset '{preset_name}' not found. Check ARP preset names.")
+            except Exception as e:
+                self.report({'WARNING'}, f"Preset '{preset_name}' not found. Check ARP preset names. ({e})")
+
             bpy.ops.arp.redefine_rest_pose()
 
-            # Add T-pose refinements if needed ...
-            # e.g. adjust_to_floor(target_armature)
+            # (Optional) adjust-to-floor or other T-pose refinements:
+            # adjust_to_floor(target_armature)
+
             bpy.ops.arp.save_pose_rest()
             bpy.ops.object.mode_set(mode='OBJECT')
+
+            # Retarget using ARP
             bpy.ops.arp.retarget(frame_start=start_frame, frame_end=end_frame)
 
             # Export retargeted as BVH
@@ -490,7 +511,6 @@ class VIEW3D_PT_batch_retarget_panel(bpy.types.Panel):
         layout.prop(props, "preset_name")
         layout.prop(props, "fps")
 
-        # A button to run the operator
         layout.operator("object.batch_retarget", text="Retarget")
 
 # ------------------------------------------------------------------------
@@ -510,11 +530,9 @@ def register():
     bpy.types.Scene.batch_retarget_props = PointerProperty(type=BATCHRETARGET_Properties)
 
 def unregister():
-    # Remove the property group from Scene
     del bpy.types.Scene.batch_retarget_props
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
 
-# If you're running this script from the text editor for testing (outside official add-on install):
 # if __name__ == "__main__":
 #     register()
