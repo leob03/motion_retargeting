@@ -387,19 +387,20 @@ if __name__ == '__main__':
         
         export_path = os.path.join(retargeted_bvh_folders, bvh_file_name)
 
-        bpy.ops.object.select_all(action='SELECT')
+        # Instead of deleting all objects, only delete those that are not marked as retargetted.
+        bpy.ops.object.select_all(action='DESELECT')
+        for obj in bpy.context.scene.objects:
+            if not obj.get("retargetted", False):
+                obj.select_set(True)
         bpy.ops.object.delete()
-        
+
         bpy.ops.outliner.orphans_purge()
         clean_blocks()
         gc.collect()
 
         bpy.ops.import_anim.bvh(filepath=bvh_file)
         source_armature = bpy.context.object
-
-        # # Scale down the source armature by a factor of 100
-        # source_armature.scale = (0.1, 0.1, 0.1)
-        # bpy.context.view_layer.update()  # Update the scene to apply the scale
+        source_armature["retargetted"] = True  # Mark the input rig so it's preserved in subsequent iterations
 
         action = source_armature.animation_data.action
 
@@ -410,12 +411,13 @@ if __name__ == '__main__':
         bpy.ops.import_anim.bvh(filepath=retargeted_Tpose_path)
         target_armature = bpy.context.object 
         bpy.context.scene.target_rig = target_armature.name
+        target_armature["retargetted"] = True  # Mark this armature so it's preserved in subsequent iterations
 
         bpy.ops.arp.auto_scale()
         bpy.ops.arp.build_bones_list()
         bpy.ops.arp.import_config_preset(preset_name='100style2mixamo_mannequin')
         
-        bpy.ops.arp.redefine_rest_pose()
+        bpy.ops.arp.redefine_rest_spose()
 
         # refine the T-pose
         armature = bpy.context.object
@@ -477,95 +479,3 @@ if __name__ == '__main__':
 
         save(target_armature, filepath=export_path, frame_start=start_frame, frame_end=end_frame, root_transform_only=True, global_matrix=global_matrix)
 
-        # Adjust the armature to touch the floor
-        # adjust_to_floor(armature)
-
-
-        # Now retarget that .BVH onto the actual FBX mesh ---
-
-        # 1) Clean up or at least deselect everything
-        bpy.ops.object.select_all(action='DESELECT')
-
-        # 2) Import the FBX file (Mixamo_Mannequin.fbx) so we have the actual mesh + rig
-        bpy.ops.import_scene.fbx(filepath=mixamo_fbx_path)
-        # Typically you may have multiple objects imported (mesh + armature + empties).
-        # Identify the new rig (below we assume the first Armature is the mixamo rig):
-        mixamo_rig = None
-        for obj in bpy.context.selected_objects:
-            if obj.type == 'ARMATURE':
-                mixamo_rig = obj
-                break
-
-        if mixamo_rig is None:
-            raise RuntimeError("Could not find an Armature in the imported FBX.")
-
-        # 3) Import the newly exported BVH again, so we can use it as "source"
-        bpy.ops.import_anim.bvh(filepath=export_path)
-        bvh_armature = bpy.context.object  # The retargeted BVH's armature
-
-        bpy.context.view_layer.objects.active = bvh_armature  # The newly imported one
-        bpy.ops.object.mode_set(mode='OBJECT') 
-
-        print("Newly imported BVH armature:", bvh_armature.name)
-
-        # Make sure we actually have an Armature
-        if bvh_armature and bvh_armature.type == 'ARMATURE':
-            print("Bones in this armature:")
-            for bone in bvh_armature.data.bones:
-                print("  -", bone.name)
-        else:
-            print("Error: The imported object is not an Armature.")
-
-        # 4) Set up ARP retargeting from the retargeted BVH -> FBX rig
-        # You will need a correct preset or correct bone list for this step
-        bpy.ops.arp.auto_scale()
-        bpy.context.scene.source_rig = bvh_armature.name
-        bpy.ops.arp.build_bones_list()
-        bpy.ops.arp.import_config_preset(preset_name='mixamo_mannequin2mixamo_mannequin')
-        
-
-        # bpy.ops.arp.redefine_rest_pose()
-        # bpy.ops.arp.save_pose_rest()
-        # bpy.ops.object.mode_set(mode='OBJECT')
-
-        # 5) Now do the retarget from the newly imported BVH (bvh_armature) to the FBX rig (mixamo_rig)
-        #    Use the same frame range from the original action
-        bpy.ops.arp.retarget(frame_start=start_frame, frame_end=end_frame)
-
-        # (Optional) If you want to export the final result (mesh + animation) to an FBX:
-        # You can rename it to have the same name but .fbx extension.
-        out_fbx = os.path.join(
-            retargeted_bvh_folders,
-            os.path.splitext(bvh_file_name)[0] + "_animated.fbx"
-        )
-        # Make sure the Mixamo rig and mesh are selected
-        bpy.ops.object.select_all(action='DESELECT')
-        mixamo_rig.select_set(True)
-        # If there's a mesh child, select it as well:
-        for child in mixamo_rig.children:
-            if child.type == 'MESH':
-                child.select_set(True)
-        bpy.context.view_layer.objects.active = mixamo_rig
-
-        bpy.ops.export_scene.fbx(
-            filepath=out_fbx,
-            use_selection=True,
-            object_types={'ARMATURE','MESH'},
-            bake_anim=True,
-            apply_scale_options='FBX_SCALE_UNITS'  # or 'FBX_SCALE_ALL' if needed
-        )
-
-        # # Delete the source and target armatures after exporting
-        # bpy.ops.object.select_all(action='DESELECT')
-        # source_armature.select_set(True)
-        # target_armature.select_set(True)
-        # bpy.ops.object.delete()
-
-    # # Import all retargeted BVH files at scale (0.1, 0.1, 0.1)
-    # for retargeted_bvh_file in os.listdir(retargeted_bvh_folders):
-    #     if retargeted_bvh_file.endswith('.bvh'):
-    #         retargeted_bvh_path = os.path.join(retargeted_bvh_folders, retargeted_bvh_file)
-    #         bpy.ops.import_anim.bvh(filepath=retargeted_bvh_path)
-    #         imported_armature = bpy.context.object
-    #         imported_armature.scale = (0.1, 0.1, 0.1)
-    #         bpy.context.view_layer.update()  # Update the scene to apply the scale
