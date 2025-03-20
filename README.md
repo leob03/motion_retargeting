@@ -17,9 +17,9 @@ The Blender Batch Motion Retargeting Add-on is a powerful tool designed to strea
 
 ## Prerequisites
 
-- **Blender:** Compatible with Blender 2.8 and above (please check for specific version requirements).
-- **Auto-Rig Pro:** This add-on requires Auto-Rig Pro to be installed and activated. Purchase and download it from [Blender Market](https://blendermarket.com/products/auto-rig-pro).
-- **Python:** Uses Blender’s bundled Python environment.
+- **Blender:** Compatible with Blender 3.x and above.
+- **Auto-Rig Pro:** This add-on requires Auto-Rig Pro to be installed and activated. Purchase and download it from [Blender Market](https://blendermarket.com/products/auto-rig-pro). we use ARP 3.69.
+- **Python:** Uses Blender’s bundled Python environment bpy for Python 3.10.
 
 ---
 
